@@ -219,7 +219,12 @@ If something fails, check: Atlas IP allowlist (`0.0.0.0/0`), env vars (no typos,
 
 When you update the code (e.g. fix short selling, add features):
 
-1. **Push to GitHub:** `git add . && git commit -m "..." && git push`
-2. **Backend (Railway/Render):** Usually auto-deploys from GitHub. Check the dashboard — a new deployment should start. Wait for it to finish.
-3. **Frontend (Vercel):** Usually auto-deploys. Check the Vercel dashboard.
-4. If you see "Insufficient position" when selling without a position, your backend is running old code — trigger a manual redeploy on Railway/Render.
+1. **Push to GitHub first** (Railway/Render deploy from GitHub):
+   ```bash
+   git add .
+   git commit -m "Fix short selling"
+   git push origin main
+   ```
+2. **Backend (Railway/Render):** Open your project → **Deployments** → click **Redeploy** on the latest commit (or wait for auto-deploy). Wait 2–3 minutes for the build.
+3. **Frontend (Vercel):** Usually auto-deploys. If not, trigger a redeploy.
+4. **Verify:** Create a new game, sell a stock you don’t own (e.g. MARUTI). It should open a short — no "Insufficient position" error.
