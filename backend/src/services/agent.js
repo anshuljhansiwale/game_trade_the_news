@@ -118,8 +118,8 @@ function generateTemplateAnalysis(event, portfolio, analogues) {
   const tickers = (event.tickers || []).join(', ');
   const sentiment = event.sentiment || '';
   const category = event.categoryLabel || event.category || '';
-  const isPositive = ['beat', 'risk-on', 'dovish'].includes(sentiment);
-  const isNegative = ['miss', 'risk-off', 'hawkish'].includes(sentiment);
+  const isPositive = ['beat', 'risk-on', 'dovish', 'positive', 'bullish', 'inflow'].includes(sentiment);
+  const isNegative = ['miss', 'risk-off', 'hawkish', 'negative', 'bearish', 'outflow'].includes(sentiment);
 
   let impact = '';
   if (isPositive) {

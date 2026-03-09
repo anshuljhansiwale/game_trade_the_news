@@ -41,6 +41,7 @@ export function getSimulatedPrice(symbol) {
 export async function executeOrder(userId, sessionId, symbol, side, qty) {
   const db = getDb();
   const portfolio = await getOrCreatePortfolio(userId, sessionId);
+  portfolio.positions = portfolio.positions || [];
   const price = getSimulatedPrice(symbol);
   const notional = price * qty;
 
