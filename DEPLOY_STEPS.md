@@ -118,6 +118,7 @@ git push -u origin main
    ```
 
 **Check:** Open `https://YOUR-BACKEND-URL/health` in a browser. You should see `{"ok":true}`.
+https://gametradethenews-production.up.railway.app/health
 
 ### Option B — Render
 
@@ -211,3 +212,14 @@ git push -u origin main
 | 6   | Share frontend URL; play from anywhere |
 
 If something fails, check: Atlas IP allowlist (`0.0.0.0/0`), env vars (no typos, no extra spaces), backend `/health` returns `{"ok":true}`, and `NEXT_PUBLIC_API_URL` has no trailing slash.
+
+---
+
+## After code changes: redeploy
+
+When you update the code (e.g. fix short selling, add features):
+
+1. **Push to GitHub:** `git add . && git commit -m "..." && git push`
+2. **Backend (Railway/Render):** Usually auto-deploys from GitHub. Check the dashboard — a new deployment should start. Wait for it to finish.
+3. **Frontend (Vercel):** Usually auto-deploys. Check the Vercel dashboard.
+4. If you see "Insufficient position" when selling without a position, your backend is running old code — trigger a manual redeploy on Railway/Render.

@@ -151,7 +151,12 @@ export default function GamePage() {
       await loadLeaderboard();
       await loadTrades();
     } catch (e) {
-      setError(e.message);
+      const msg = e.message || '';
+      if (msg.toLowerCase().includes('insufficient position')) {
+        setError('Short selling is supported. Redeploy your backend (Railway/Render) with the latest code and try again.');
+      } else {
+        setError(msg);
+      }
     }
   }
 
