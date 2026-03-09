@@ -151,12 +151,7 @@ export default function GamePage() {
       await loadLeaderboard();
       await loadTrades();
     } catch (e) {
-      const msg = e.message || '';
-      if (msg.toLowerCase().includes('insufficient position')) {
-        setError('Short selling is supported in the latest code. Push to GitHub, then in Railway/Render: Deployments → Redeploy. Wait 2–3 min for the build to finish.');
-      } else {
-        setError(msg);
-      }
+      setError(e.message || 'Order failed');
     }
   }
 

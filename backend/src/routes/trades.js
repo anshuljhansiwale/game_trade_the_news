@@ -1,8 +1,37 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { executeOrder, updateLeaderboard } from '../services/portfolio.js';
+import { executeOrder, updateLeaderboard, getOrCreatePortfolio, getSimulatedPrice } from '../services/portfolio.js';
 
 const router = Router();
+
+/** Fallback when old deployed code throws "Insufficient position" — perform short sell inline */
+async function fallbackShortSell(userId, sessionId, symbol, qty) {
+  const db = getDb();
+  const portfolio = await getOrCreatePortfolio(userId, sessionId);
+  portfolio.positions = portfolio.positions || [];
+  const price = getSimulatedPrice(symbol);
+  const notional = price * qty;
+  portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
+  portfolio.positions.push({ symbol, qty: -qty, avgCost: price });
+  portfolio.cash += notional;
+  portfolio.updatedAt = new Date();
+  let positionsValue = 0;
+  for (const pos of portfolio.positions) {
+    positionsValue += getSimulatedPrice(pos.symbol) * pos.qty;
+  }
+  portfolio.totalValue = portfolio.cash + positionsValue;
+  await db.collection('portfolios').replaceOne({ userId, sessionId }, portfolio);
+  await db.collection('trades').insertOne({
+    userId,
+    sessionId,
+    symbol,
+    side: 'sell',
+    qty,
+    price,
+    timestamp: new Date(),
+  });
+  return { price, portfolio };
+}
 
 router.post('/', async (req, res) => {
   try {
@@ -18,7 +47,21 @@ router.post('/', async (req, res) => {
     const session = await db.collection('game_sessions').findOne({ sessionId: sid });
     if (!session) return res.status(404).json({ error: 'Session not found' });
     if (session.status === 'ended') return res.status(400).json({ error: 'Game has ended; no new trades allowed' });
-    const { price, portfolio } = await executeOrder(userId, sid, symbol, side, numQty);
+
+    let price, portfolio;
+    try {
+      const result = await executeOrder(userId, sid, symbol, side, numQty);
+      price = result.price;
+      portfolio = result.portfolio;
+    } catch (e) {
+      if (side === 'sell' && (e.message || '').toLowerCase().includes('insufficient position')) {
+        const result = await fallbackShortSell(userId, sid, symbol, numQty);
+        price = result.price;
+        portfolio = result.portfolio;
+      } else {
+        throw e;
+      }
+    }
     await updateLeaderboard(sid);
     res.json({ price, portfolio });
   } catch (e) {
