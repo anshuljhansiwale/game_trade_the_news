@@ -25,18 +25,22 @@ export default function Portfolio({ portfolio, prices }) {
           <span className="text-sm text-[var(--muted)]">Cash</span>
           <span className="font-mono text-white">{formatINR(portfolio.cash ?? 0)}</span>
         </div>
-        {portfolio.positions?.length > 0 && (
+        {(portfolio.positions?.length ?? 0) > 0 && (
           <div>
-            <h3 className="text-xs font-semibold text-[var(--muted)] mb-2">Positions</h3>
+            <h3 className="text-xs font-semibold text-[var(--muted)] mb-2">Positions (Long & Short)</h3>
             <ul className="space-y-2">
               {portfolio.positions.map((pos) => {
                 const price = prices[pos.symbol] ?? pos.avgCost;
                 const value = price * pos.qty;
-                const isShort = pos.qty < 0;
+                const isShort = Number(pos.qty) < 0;
+                const qtyDisplay = Math.abs(Number(pos.qty));
                 return (
-                  <li key={pos.symbol} className="flex justify-between text-sm">
-                    <span className="font-mono text-white">{pos.symbol === 'M_M' ? 'M&M' : pos.symbol}{isShort ? ' (S)' : ''}</span>
-                    <span className="text-[var(--muted)]">{isShort ? 'Short ' : ''}{Math.abs(pos.qty)} @ {formatINR(price ?? 0, { maxFractionDigits: 2 })}</span>
+                  <li key={`${pos.symbol}-${pos.qty}`} className="flex justify-between text-sm items-center">
+                    <span className="font-mono text-white">{pos.symbol === 'M_M' ? 'M&M' : pos.symbol}</span>
+                    <span className="text-[var(--muted)]">
+                      {isShort ? <span className="text-[var(--danger)]">Short {qtyDisplay}</span> : <span>Long {qtyDisplay}</span>}
+                      {' @ '}{formatINR(price ?? 0, { maxFractionDigits: 2 })}
+                    </span>
                     <span className={`font-mono ${isShort ? 'text-[var(--danger)]' : 'text-white'}`}>{formatINR(value)}</span>
                   </li>
                 );

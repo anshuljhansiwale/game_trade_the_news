@@ -44,6 +44,26 @@ router.post('/join', async (req, res) => {
   }
 });
 
+router.post('/:sessionId/end', async (req, res) => {
+  try {
+    const sid = String(req.params.sessionId).trim().toLowerCase();
+    const db = getDb();
+    const session = await db.collection('game_sessions').findOne({ sessionId: sid, status: 'active' });
+    if (!session) return res.status(404).json({ error: 'Session not found or already ended' });
+    stopSimulation(sid);
+    await squareOffAllPortfolios(sid);
+    const ranked = await updateLeaderboard(sid);
+    await db.collection('game_sessions').updateOne(
+      { sessionId: sid },
+      { $set: { status: 'ended', endTime: new Date() } }
+    );
+    const winner = ranked[0];
+    res.json({ status: 'ended', leaderboard: ranked, winner: winner ? { userName: winner.userName, returnPct: winner.returnPct } : null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.get('/:sessionId', async (req, res) => {
   try {
     const sid = String(req.params.sessionId).trim().toLowerCase();
@@ -61,26 +81,6 @@ router.get('/:sessionId/leaderboard', async (req, res) => {
     const sid = String(req.params.sessionId).trim().toLowerCase();
     const ranked = await updateLeaderboard(sid);
     res.json(ranked);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-router.post('/:sessionId/end', async (req, res) => {
-  try {
-    const sid = String(req.params.sessionId).trim().toLowerCase();
-    const db = getDb();
-    const session = await db.collection('game_sessions').findOne({ sessionId: sid, status: 'active' });
-    if (!session) return res.status(404).json({ error: 'Session not found or already ended' });
-    stopSimulation(sid);
-    await squareOffAllPortfolios(sid);
-    const ranked = await updateLeaderboard(sid);
-    await db.collection('game_sessions').updateOne(
-      { sessionId: sid },
-      { $set: { status: 'ended', endTime: new Date() } }
-    );
-    const winner = ranked[0];
-    res.json({ status: 'ended', leaderboard: ranked, winner: winner ? { userName: winner.userName, returnPct: winner.returnPct } : null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -11,6 +11,7 @@ export default function LobbyPage() {
   const [mode, setMode] = useState('create'); // 'create' | 'join'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [logoError, setLogoError] = useState(false);
 
   async function handleCreate() {
     if (!userName.trim()) { setError('Enter your name'); return; }
@@ -44,15 +45,22 @@ export default function LobbyPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg)]">
       <div className="w-full max-w-md">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <img
-            src="https://webimages.mongodb.com/_com_assets/cms/mongodb-logo-rgb-j6w271g1cn.svg"
-            alt="MongoDB"
-            className="h-10 w-auto"
-          />
-          <span className="text-xl font-semibold text-white">MongoDB</span>
+        <div className="flex flex-col items-center mb-6">
+          <div className="flex items-center justify-center gap-4 mb-4 px-6 py-4 rounded-xl bg-white/10 border border-white/20">
+            {logoError ? (
+              <div className="h-16 flex items-center justify-center px-4 rounded-lg bg-[#00ed64]/20 text-[#00ed64] font-bold text-2xl">M</div>
+            ) : (
+              <img
+                src="https://webimages.mongodb.com/_com_assets/cms/mongodb-logo-rgb-j6w271g1cn.svg"
+                alt="MongoDB"
+                className="h-16 w-auto min-h-[48px]"
+                onError={() => setLogoError(true)}
+              />
+            )}
+            <span className="text-2xl font-bold text-white">MongoDB</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-center mb-2 text-white">Trade the News</h1>
         </div>
-        <h1 className="text-3xl font-bold text-center mb-2 text-white">Trade the News</h1>
         <p className="text-center text-[var(--muted)] mb-4">Virtual ₹1,00,000 portfolio. NIFTY 50 stocks. News every 60s. Compete for best returns.</p>
         <p className="text-center text-xs text-[var(--muted)] mb-8 leading-relaxed">
           Powered by MongoDB: document model, Atlas Vector Search for semantic retrieval, real-time news ingestion, portfolio tracking, and AI agent memory — all in one platform.
