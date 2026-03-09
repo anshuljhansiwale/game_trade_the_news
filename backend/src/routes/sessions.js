@@ -44,9 +44,11 @@ router.post('/join', async (req, res) => {
   }
 });
 
-router.post('/:sessionId/end', async (req, res) => {
+router.post('/end', async (req, res) => {
   try {
-    const sid = String(req.params.sessionId).trim().toLowerCase();
+    const sessionId = req.body?.sessionId ?? req.params?.sessionId;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    const sid = String(sessionId).trim().toLowerCase();
     const db = getDb();
     const session = await db.collection('game_sessions').findOne({ sessionId: sid, status: 'active' });
     if (!session) return res.status(404).json({ error: 'Session not found or already ended' });

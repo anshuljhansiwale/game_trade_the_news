@@ -37,7 +37,11 @@ export async function getSession(sessionId) {
 
 export async function endSession(sessionId) {
   const sid = String(sessionId || '').trim().toLowerCase();
-  const res = await fetch(`${API}/api/sessions/${sid}/end`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  const res = await fetch(`${API}/api/sessions/end`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId: sid }),
+  });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
