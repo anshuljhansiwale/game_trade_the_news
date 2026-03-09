@@ -1,8 +1,44 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { executeOrder, executeShortSell, updateLeaderboard, getOrCreatePortfolio } from '../services/portfolio.js';
+import { executeOrder, updateLeaderboard, getOrCreatePortfolio, getSimulatedPrice } from '../services/portfolio.js';
 
 const router = Router();
+
+/** Inline short sell when executeOrder throws "Insufficient position" (old deployed code) */
+async function doShortSell(userId, sessionId, symbol, qty) {
+  const db = getDb();
+  const portfolio = await getOrCreatePortfolio(userId, sessionId);
+  portfolio.positions = portfolio.positions || [];
+  const price = getSimulatedPrice(symbol);
+  const notional = price * qty;
+  const pos = portfolio.positions.find((p) => String(p.symbol) === String(symbol));
+  const currentQty = pos != null ? Number(pos.qty) || 0 : 0;
+  const newQty = currentQty - qty;
+  if (newQty === 0) {
+    portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
+  } else {
+    portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
+    portfolio.positions.push({ symbol, qty: newQty, avgCost: price });
+  }
+  portfolio.cash += notional;
+  portfolio.updatedAt = new Date();
+  let positionsValue = 0;
+  for (const p of portfolio.positions) {
+    positionsValue += getSimulatedPrice(p.symbol) * p.qty;
+  }
+  portfolio.totalValue = portfolio.cash + positionsValue;
+  await db.collection('portfolios').replaceOne({ userId, sessionId }, portfolio);
+  await db.collection('trades').insertOne({
+    userId,
+    sessionId,
+    symbol,
+    side: 'sell',
+    qty,
+    price,
+    timestamp: new Date(),
+  });
+  return { price, portfolio };
+}
 
 router.post('/', async (req, res) => {
   try {
@@ -20,15 +56,14 @@ router.post('/', async (req, res) => {
     if (session.status === 'ended') return res.status(400).json({ error: 'Game has ended; no new trades allowed' });
 
     let result;
-    if (side === 'sell') {
-      const portfolio = await getOrCreatePortfolio(userId, sid);
-      const pos = (portfolio.positions || []).find((p) => String(p.symbol) === String(symbol));
-      const hasPosition = pos != null && Number(pos.qty) !== 0;
-      result = hasPosition
-        ? await executeOrder(userId, sid, symbol, side, numQty)
-        : await executeShortSell(userId, sid, symbol, numQty);
-    } else {
+    try {
       result = await executeOrder(userId, sid, symbol, side, numQty);
+    } catch (e) {
+      if (side === 'sell' && (e.message || '').toLowerCase().includes('insufficient position')) {
+        result = await doShortSell(userId, sid, symbol, numQty);
+      } else {
+        throw e;
+      }
     }
     await updateLeaderboard(sid);
     res.json({ price: result.price, portfolio: result.portfolio });
