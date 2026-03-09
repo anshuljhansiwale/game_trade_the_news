@@ -35,6 +35,13 @@ export async function getSession(sessionId) {
   return res.json();
 }
 
+export async function endSession(sessionId) {
+  const sid = String(sessionId || '').trim().toLowerCase();
+  const res = await fetch(`${API}/api/sessions/${sid}/end`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function getLeaderboard(sessionId) {
   const res = await fetch(`${API}/api/sessions/${sessionId}/leaderboard`);
   if (!res.ok) throw new Error(await res.text());

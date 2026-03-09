@@ -58,9 +58,18 @@ export async function executeOrder(userId, sessionId, symbol, side, qty) {
     portfolio.cash -= notional;
   } else {
     const pos = portfolio.positions.find((p) => p.symbol === symbol);
-    if (!pos || pos.qty < qty) throw new Error('Insufficient position');
-    pos.qty -= qty;
-    if (pos.qty <= 0) portfolio.positions = portfolio.positions.filter((p) => p.symbol !== symbol);
+    if (pos) {
+      const newQty = pos.qty - qty;
+      if (newQty === 0) portfolio.positions = portfolio.positions.filter((p) => p.symbol !== symbol);
+      else if (newQty > 0) {
+        pos.qty = newQty;
+      } else {
+        pos.qty = newQty;
+        pos.avgCost = price;
+      }
+    } else {
+      portfolio.positions.push({ symbol, qty: -qty, avgCost: price });
+    }
     portfolio.cash += notional;
   }
 
@@ -88,6 +97,22 @@ async function recalcTotalValue(portfolio) {
   }
   portfolio.totalValue = portfolio.cash + positionsValue;
   return portfolio;
+}
+
+export async function squareOffAllPortfolios(sessionId) {
+  const db = getDb();
+  const portfolios = await db.collection('portfolios').find({ sessionId }).toArray();
+  for (const portfolio of portfolios) {
+    const positions = [...(portfolio.positions || [])];
+    const longs = positions.filter((p) => p.qty > 0);
+    const shorts = positions.filter((p) => p.qty < 0);
+    for (const pos of longs) {
+      await executeOrder(portfolio.userId, sessionId, pos.symbol, 'sell', pos.qty);
+    }
+    for (const pos of shorts) {
+      await executeOrder(portfolio.userId, sessionId, pos.symbol, 'buy', -pos.qty);
+    }
+  }
 }
 
 export async function updateLeaderboard(sessionId) {

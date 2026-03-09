@@ -44,8 +44,19 @@ export default function LobbyPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[var(--bg)]">
       <div className="w-full max-w-md">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <img
+            src="https://webimages.mongodb.com/_com_assets/cms/mongodb-logo-rgb-j6w271g1cn.svg"
+            alt="MongoDB"
+            className="h-10 w-auto"
+          />
+          <span className="text-xl font-semibold text-white">MongoDB</span>
+        </div>
         <h1 className="text-3xl font-bold text-center mb-2 text-white">Trade the News</h1>
-        <p className="text-center text-[var(--muted)] mb-8">Virtual ₹1,00,000 portfolio. NIFTY 50 stocks. News every 60s. Compete for best returns.</p>
+        <p className="text-center text-[var(--muted)] mb-4">Virtual ₹1,00,000 portfolio. NIFTY 50 stocks. News every 60s. Compete for best returns.</p>
+        <p className="text-center text-xs text-[var(--muted)] mb-8 leading-relaxed">
+          Powered by MongoDB: document model, Atlas Vector Search for semantic retrieval, real-time news ingestion, portfolio tracking, and AI agent memory — all in one platform.
+        </p>
 
         <div className="flex rounded-lg bg-[var(--card)] border border-[var(--border)] p-1 mb-6">
           <button

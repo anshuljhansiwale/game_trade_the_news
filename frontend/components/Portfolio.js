@@ -32,11 +32,12 @@ export default function Portfolio({ portfolio, prices }) {
               {portfolio.positions.map((pos) => {
                 const price = prices[pos.symbol] ?? pos.avgCost;
                 const value = price * pos.qty;
+                const isShort = pos.qty < 0;
                 return (
                   <li key={pos.symbol} className="flex justify-between text-sm">
-                    <span className="font-mono text-white">{pos.symbol === 'M_M' ? 'M&M' : pos.symbol}</span>
-                    <span className="text-[var(--muted)]">{pos.qty} @ {formatINR(price ?? 0, { maxFractionDigits: 2 })}</span>
-                    <span className="font-mono text-white">{formatINR(value)}</span>
+                    <span className="font-mono text-white">{pos.symbol === 'M_M' ? 'M&M' : pos.symbol}{isShort ? ' (S)' : ''}</span>
+                    <span className="text-[var(--muted)]">{isShort ? 'Short ' : ''}{Math.abs(pos.qty)} @ {formatINR(price ?? 0, { maxFractionDigits: 2 })}</span>
+                    <span className={`font-mono ${isShort ? 'text-[var(--danger)]' : 'text-white'}`}>{formatINR(value)}</span>
                   </li>
                 );
               })}

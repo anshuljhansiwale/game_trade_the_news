@@ -11,6 +11,8 @@ import {
   getAgentAnalysis,
   placeOrder,
   getTrades,
+  getSession,
+  endSession,
 } from '@/lib/api';
 import Countdown from '@/components/Countdown';
 import NewsFeed from '@/components/NewsFeed';
@@ -39,6 +41,9 @@ export default function GamePage() {
   const [loadingAgent, setLoadingAgent] = useState(false);
   const [error, setError] = useState('');
   const [nextEventAt, setNextEventAt] = useState(null);
+  const [sessionStatus, setSessionStatus] = useState('active');
+  const [gameOver, setGameOver] = useState(null);
+  const [endingGame, setEndingGame] = useState(false);
 
   const loadPortfolio = useCallback(async () => {
     if (!sessionId || !userId) return;
@@ -75,6 +80,22 @@ export default function GamePage() {
     }
   }, [sessionId]);
 
+  const loadSession = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const s = await getSession(sessionId);
+      setSessionStatus(s?.status || 'active');
+      if (s?.status === 'ended' && !gameOver) {
+        const list = await getLeaderboard(sessionId);
+        const winner = list?.[0];
+        setGameOver({ leaderboard: list || [], winner: winner ? { userName: winner.userName, returnPct: winner.returnPct } : null });
+        setLeaderboard(list || []);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  }, [sessionId, gameOver]);
+
   const loadTrades = useCallback(async () => {
     if (!sessionId || !userId) return;
     try {
@@ -91,14 +112,16 @@ export default function GamePage() {
     loadNews();
     loadLeaderboard();
     loadTrades();
+    loadSession();
     const t = setInterval(() => {
       loadPortfolio();
       loadNews();
       loadLeaderboard();
       loadTrades();
+      loadSession();
     }, POLL_MS);
     return () => clearInterval(t);
-  }, [sessionId, userId, loadPortfolio, loadNews, loadLeaderboard, loadTrades]);
+  }, [sessionId, userId, loadPortfolio, loadNews, loadLeaderboard, loadTrades, loadSession]);
 
   useEffect(() => {
     if (!latestNews?.publishedAt) return;
@@ -132,10 +155,59 @@ export default function GamePage() {
     }
   }
 
+  async function handleEndGame() {
+    if (!sessionId) return;
+    setEndingGame(true);
+    setError('');
+    try {
+      const result = await endSession(sessionId);
+      setGameOver({ leaderboard: result.leaderboard || [], winner: result.winner });
+      setLeaderboard(result.leaderboard || []);
+      setSessionStatus('ended');
+      await loadPortfolio();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setEndingGame(false);
+    }
+  }
+
   if (!userId) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <p className="text-[var(--muted)]">Missing user. <Link href="/" className="text-[var(--accent)] underline">Go to lobby</Link></p>
+      </div>
+    );
+  }
+
+  if (gameOver || sessionStatus === 'ended') {
+    return (
+      <div className="min-h-screen p-4 md:p-6 max-w-2xl mx-auto flex flex-col items-center justify-center">
+        <div className="w-full rounded-xl bg-[var(--card)] border border-[var(--border)] p-8 text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Game Over</h2>
+          <p className="text-[var(--muted)] mb-6">All positions squared off. Final results:</p>
+          {gameOver?.winner && (
+            <div className="mb-6 p-4 rounded-lg bg-[var(--accent)]/20 border border-[var(--accent)]">
+              <p className="text-sm text-[var(--muted)]">Winner</p>
+              <p className="text-xl font-bold text-[var(--accent)]">{gameOver.winner.userName}</p>
+              <p className="text-lg font-mono text-white">+{gameOver.winner.returnPct?.toFixed(2)}%</p>
+            </div>
+          )}
+          <div className="space-y-2 mb-6">
+            {(gameOver?.leaderboard || leaderboard).map((e, i) => (
+              <div key={e.userId} className={`flex justify-between items-center py-2 px-3 rounded ${e.userId === userId ? 'bg-[var(--accent)]/10' : ''}`}>
+                <span className="font-mono text-[var(--muted)]">#{e.rank}</span>
+                <span className={e.userId === userId ? 'font-semibold text-[var(--accent)]' : 'text-white'}>{e.userName ?? e.userId}</span>
+                <span className={`font-mono ${e.returnPct >= 0 ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`}>
+                  {e.returnPct >= 0 ? '+' : ''}{e.returnPct?.toFixed(2)}%
+                </span>
+              </div>
+            ))}
+          </div>
+          <Link href="/" className="inline-block px-6 py-3 rounded-lg bg-[var(--accent)] text-black font-semibold hover:bg-[var(--accent-dim)]">
+            Back to Lobby
+          </Link>
+        </div>
       </div>
     );
   }
@@ -149,7 +221,17 @@ export default function GamePage() {
           <span className="text-sm text-[var(--muted)]">Session: <span className="font-mono text-white">{sessionId}</span></span>
           <span className="text-sm text-[var(--muted)]">{userName}</span>
         </div>
-        {nextEventAt && <Countdown targetMs={nextEventAt} intervalMs={1000} />}
+        <div className="flex items-center gap-4">
+          {nextEventAt && <Countdown targetMs={nextEventAt} intervalMs={1000} />}
+          <button
+            type="button"
+            onClick={handleEndGame}
+            disabled={endingGame}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--danger)] text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {endingGame ? 'Ending…' : 'End game'}
+          </button>
+        </div>
       </header>
 
       {error && <p className="mb-4 text-sm text-[var(--danger)]">{error}</p>}

@@ -23,8 +23,8 @@ export default function TradeForm({ portfolio, prices, onOrder }) {
   const price = prices[symbol] ?? 100;
   const notional = price * (parseInt(qty, 10) || 0);
   const canBuy = portfolio?.cash >= notional && notional > 0;
-  const position = portfolio?.positions?.find((p) => p.symbol === symbol);
-  const canSell = position && position.qty >= (parseInt(qty, 10) || 0) && parseInt(qty, 10) > 0;
+  const numQty = parseInt(qty, 10) || 0;
+  const canSell = numQty > 0;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -89,7 +89,7 @@ export default function TradeForm({ portfolio, prices, onOrder }) {
         </div>
         <button
           type="submit"
-          disabled={submitting || (side === 'buy' ? !canBuy : !canSell)}
+          disabled={submitting || numQty <= 0 || (side === 'buy' && !canBuy)}
           className="w-full py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--accent)] text-black hover:bg-[var(--accent-dim)]"
         >
           {submitting ? '...' : side === 'buy' ? 'Buy' : 'Sell'}
