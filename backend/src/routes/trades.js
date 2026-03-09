@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db.js';
-import { executeOrder, updateLeaderboard } from '../services/portfolio.js';
+import { executeOrder, executeShortSell, updateLeaderboard, getOrCreatePortfolio } from '../services/portfolio.js';
 
 const router = Router();
 
@@ -18,9 +18,20 @@ router.post('/', async (req, res) => {
     const session = await db.collection('game_sessions').findOne({ sessionId: sid });
     if (!session) return res.status(404).json({ error: 'Session not found' });
     if (session.status === 'ended') return res.status(400).json({ error: 'Game has ended; no new trades allowed' });
-    const { price, portfolio } = await executeOrder(userId, sid, symbol, side, numQty);
+
+    let result;
+    if (side === 'sell') {
+      const portfolio = await getOrCreatePortfolio(userId, sid);
+      const pos = (portfolio.positions || []).find((p) => String(p.symbol) === String(symbol));
+      const hasPosition = pos != null && Number(pos.qty) !== 0;
+      result = hasPosition
+        ? await executeOrder(userId, sid, symbol, side, numQty)
+        : await executeShortSell(userId, sid, symbol, numQty);
+    } else {
+      result = await executeOrder(userId, sid, symbol, side, numQty);
+    }
     await updateLeaderboard(sid);
-    res.json({ price, portfolio });
+    res.json({ price: result.price, portfolio: result.portfolio });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

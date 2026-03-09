@@ -85,6 +85,7 @@ export default function TradeForm({ portfolio, prices, onOrder }) {
           />
           <p className="mt-1 text-xs text-[var(--muted)]">
             ~{formatINR(notional)} @ {formatINR(price ?? 0, { maxFractionDigits: 2 })}
+            {side === 'sell' && <span className="block mt-0.5">Short selling allowed — cash increases when you short</span>}
           </p>
         </div>
         <button

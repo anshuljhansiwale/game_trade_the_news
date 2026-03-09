@@ -38,6 +38,31 @@ export function getSimulatedPrice(symbol) {
   return base * (1 + (Math.random() - 0.5) * 2 * variation);
 }
 
+/** Open or add to a short position (sell without holding). Cash increases by notional. */
+export async function executeShortSell(userId, sessionId, symbol, qty) {
+  const db = getDb();
+  const portfolio = await getOrCreatePortfolio(userId, sessionId);
+  portfolio.positions = portfolio.positions || [];
+  const price = getSimulatedPrice(symbol);
+  const notional = price * qty;
+  portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
+  portfolio.positions.push({ symbol, qty: -qty, avgCost: price });
+  portfolio.cash += notional;
+  portfolio.updatedAt = new Date();
+  await recalcTotalValue(portfolio);
+  await db.collection('portfolios').replaceOne({ userId, sessionId }, portfolio);
+  await db.collection('trades').insertOne({
+    userId,
+    sessionId,
+    symbol,
+    side: 'sell',
+    qty,
+    price,
+    timestamp: new Date(),
+  });
+  return { price, portfolio };
+}
+
 export async function executeOrder(userId, sessionId, symbol, side, qty) {
   const db = getDb();
   const portfolio = await getOrCreatePortfolio(userId, sessionId);

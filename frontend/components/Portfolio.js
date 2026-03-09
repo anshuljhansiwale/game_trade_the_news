@@ -22,7 +22,7 @@ export default function Portfolio({ portfolio, prices }) {
           <span className={`font-mono font-semibold ${isPositive ? 'text-[var(--accent)]' : 'text-[var(--danger)]'}`}>{pct}%</span>
         </div>
         <div className="flex justify-between items-baseline">
-          <span className="text-sm text-[var(--muted)]">Cash</span>
+          <span className="text-sm text-[var(--muted)]">Cash (available for trading)</span>
           <span className="font-mono text-white">{formatINR(portfolio.cash ?? 0)}</span>
         </div>
         {(portfolio.positions?.length ?? 0) > 0 && (
