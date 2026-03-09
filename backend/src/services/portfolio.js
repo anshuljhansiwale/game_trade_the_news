@@ -58,17 +58,22 @@ export async function executeOrder(userId, sessionId, symbol, side, qty) {
     }
     portfolio.cash -= notional;
   } else {
-    const pos = portfolio.positions.find((p) => p.symbol === symbol);
-    if (pos) {
-      const newQty = pos.qty - qty;
-      if (newQty === 0) portfolio.positions = portfolio.positions.filter((p) => p.symbol !== symbol);
-      else if (newQty > 0) {
+    // Sell: short selling allowed — selling without position opens a short
+    const pos = portfolio.positions.find((p) => String(p.symbol) === String(symbol));
+    const currentQty = pos != null ? Number(pos.qty) || 0 : 0;
+    if (pos && currentQty !== 0) {
+      const newQty = currentQty - qty;
+      if (newQty === 0) {
+        portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
+      } else if (newQty > 0) {
         pos.qty = newQty;
       } else {
         pos.qty = newQty;
         pos.avgCost = price;
       }
     } else {
+      // No position or zero position — open short
+      portfolio.positions = portfolio.positions.filter((p) => String(p.symbol) !== String(symbol));
       portfolio.positions.push({ symbol, qty: -qty, avgCost: price });
     }
     portfolio.cash += notional;
