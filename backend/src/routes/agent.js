@@ -9,7 +9,8 @@ router.post('/analyze', async (req, res) => {
     if (!eventId || !userId || !sessionId) {
       return res.status(400).json({ error: 'eventId, userId, sessionId required' });
     }
-    const result = await analyzeAndSuggest(eventId, userId, sessionId);
+    const sid = String(sessionId).trim().toLowerCase();
+    const result = await analyzeAndSuggest(eventId, userId, sid);
     res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });

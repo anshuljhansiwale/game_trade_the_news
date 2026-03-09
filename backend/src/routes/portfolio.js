@@ -10,7 +10,8 @@ router.get('/symbols', (req, res) => {
 
 router.get('/:sessionId/:userId', async (req, res) => {
   try {
-    const portfolio = await getOrCreatePortfolio(req.params.userId, req.params.sessionId);
+    const sid = String(req.params.sessionId).trim().toLowerCase();
+    const portfolio = await getOrCreatePortfolio(req.params.userId, sid);
     const prices = {};
     for (const sym of NIFTY50_SYMBOLS) {
       prices[sym] = getSimulatedPrice(sym);

@@ -32,8 +32,8 @@ export default function LobbyPage() {
     setError('');
     setLoading(true);
     try {
-      const { userId } = await joinSession(sessionId.trim(), userName.trim());
-      router.push(`/game/${sessionId.trim()}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName.trim())}`);
+      const { userId, sessionId: sid } = await joinSession(sessionId.trim(), userName.trim());
+      router.push(`/game/${sid}?userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName.trim())}`);
     } catch (e) {
       setError(e.message || 'Failed to join session');
     } finally {

@@ -19,10 +19,11 @@ export async function createSession() {
 }
 
 export async function joinSession(sessionId, userName) {
+  const sid = String(sessionId || '').trim().toLowerCase();
   const res = await fetch(`${API}/api/sessions/join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ sessionId, userName }),
+    body: JSON.stringify({ sessionId: sid, userName }),
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();

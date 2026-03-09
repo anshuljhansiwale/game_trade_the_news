@@ -29,15 +29,16 @@ router.post('/join', async (req, res) => {
   try {
     const { sessionId, userName } = req.body;
     if (!sessionId || !userName) return res.status(400).json({ error: 'sessionId and userName required' });
+    const sid = String(sessionId).trim().toLowerCase();
     const db = getDb();
-    const session = await db.collection('game_sessions').findOne({ sessionId, status: 'active' });
+    const session = await db.collection('game_sessions').findOne({ sessionId: sid, status: 'active' });
     if (!session) return res.status(404).json({ error: 'Session not found or ended' });
     const userId = `${userName}-${Date.now()}`;
     await db.collection('game_sessions').updateOne(
-      { sessionId },
+      { sessionId: sid },
       { $addToSet: { participants: { userId, userName } } }
     );
-    res.json({ sessionId, userId, userName });
+    res.json({ sessionId: sid, userId, userName });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -45,8 +46,9 @@ router.post('/join', async (req, res) => {
 
 router.get('/:sessionId', async (req, res) => {
   try {
+    const sid = String(req.params.sessionId).trim().toLowerCase();
     const db = getDb();
-    const session = await db.collection('game_sessions').findOne({ sessionId: req.params.sessionId });
+    const session = await db.collection('game_sessions').findOne({ sessionId: sid });
     if (!session) return res.status(404).json({ error: 'Session not found' });
     res.json(session);
   } catch (e) {
@@ -56,7 +58,8 @@ router.get('/:sessionId', async (req, res) => {
 
 router.get('/:sessionId/leaderboard', async (req, res) => {
   try {
-    const ranked = await updateLeaderboard(req.params.sessionId);
+    const sid = String(req.params.sessionId).trim().toLowerCase();
+    const ranked = await updateLeaderboard(sid);
     res.json(ranked);
   } catch (e) {
     res.status(500).json({ error: e.message });
